@@ -34,6 +34,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define BPS 400
+#define TEMPO (1000 * 60 / BPS)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -46,10 +48,13 @@
 /* USER CODE BEGIN PV */
 uint8_t rx_buffer;
 
-uint8_t notes[10];
-uint8_t duration[10];
-uint8_t idx_notes;
-uint8_t idx_duration;
+uint8_t notes[100];
+uint8_t duration[100];
+uint8_t idx_music;
+uint8_t music_length;
+
+uint8_t flag_note;
+uint8_t flag_dur;
 
 int note_table[11] = {293, 329, 349, 392, 440, 494, 523, 587, 659, 698, 784};
 uint8_t playMusic = 0;
@@ -97,9 +102,6 @@ int main(void)
   MX_GPIO_Init();
   MX_USART3_UART_Init();
   MX_TIM2_Init();
-  MX_TIM3_Init();
-  MX_TIM4_Init();
-  MX_TIM5_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -111,6 +113,26 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    while (playMusic == 1)  // use while to utilize 'break'
+    {
+      if (music_length == 0)  // if no music stored
+      {
+        playMusic = 0;
+        break;
+      }
+
+      for(; idx_music < music_length; idx_music++)
+      {
+        TIM2->ARR = 1000000 / note_table[notes[idx_music]];
+        TIM2->CNT = 0;
+        HAL_TIM_OC_Start(&htim2, TIM_CHANNEL_1);
+        HAL_Delay(TEMPO * duration[idx_music]);
+        HAL_TIM_OC_Stop(&htim2, TIM_CHANNEL_1);
+        HAL_Delay(10);
+      }
+
+      playMusic = 0;  // done playing
+    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -171,15 +193,6 @@ static void MX_NVIC_Init(void)
   /* USART3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(USART3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(USART3_IRQn);
-  /* TIM3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(TIM3_IRQn);
-  /* TIM4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM4_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(TIM4_IRQn);
-  /* TIM5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM5_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(TIM5_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
@@ -187,40 +200,62 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   if (huart->Instance == USART3)
   {
-    if (rx_buf == 0x4E)
+    if (rx_buffer == 0x4E)       // 'N' : notes
     {
+      // clear array (optional)
       flag_note = 1;
       flag_dur = 0;
-      idx_notes = 0;
+      idx_music = 0;
     }
-    else if (rx_buf == 0x44)
+    else if (rx_buffer == 0x44)  // 'D' : duration
     {
+      // clear array (optional)
       flag_note = 0;
       flag_dur = 1;
-      idx_dur = 0;
+      idx_music = 0;
     }
-    else if (rx_buf == 0x7F)
+    else if (rx_buffer == 0x7F)  // end code
     {
       flag_note = 0;
       flag_dur = 0;
-      idx_notes = 0;
-      idx_dur = 0;
+      music_length = idx_music;
+      idx_music = 0;
+    }
+    else if (rx_buffer == 0x50) // 'P' : play
+    {
+      playMusic = 1;
+      idx_music = 0;
     }
     else
     {
       if (flag_note == 1)
       {
-        notes[idx_notes] = rx_buf;
-        idx_notes++;
+        notes[idx_music] = rx_buffer;
+        idx_music++;
       }
       if (flag_dur == 1)
       {
-        duration[idx_dur] = rx_buf;
-        idx_dur++;
+        duration[idx_music] = rx_buffer;
+        idx_music++;
       }
     }
   }
-  HAL_UART_Receive_IT(&huart3, &rx_buf, 1);
+  HAL_UART_Receive_IT(&huart3, &rx_buffer, 1);
+}
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim->Instance == TIM3) // eighth note
+  {
+    ;
+  }
+  if (htim->Instance == TIM4) // quarter note
+  {
+    ;
+  }
+  if (htim->Instance == TIM5) // half note
+  {
+    ;
+  }
 }
 /* USER CODE END 4 */
 
