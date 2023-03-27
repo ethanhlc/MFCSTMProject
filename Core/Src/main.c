@@ -56,7 +56,8 @@ uint8_t music_length;
 uint8_t flag_note;
 uint8_t flag_dur;
 
-int note_table[11] = {293, 329, 349, 392, 440, 494, 523, 587, 659, 698, 784};
+int note_table[14] = {262, 293, 329, 349, 392, 440, 494,
+                      523, 587, 659, 698, 784, 880, 988};
 uint8_t playMusic = 0;
 /* USER CODE END PV */
 
@@ -121,13 +122,20 @@ int main(void)
         break;
       }
 
-      for(; idx_music < music_length; idx_music++)
+      for (idx_music = 0; idx_music < music_length; idx_music++)
       {
-        TIM2->ARR = 1000000 / note_table[notes[idx_music]];
-        TIM2->CNT = 0;
-        HAL_TIM_OC_Start(&htim2, TIM_CHANNEL_1);
-        HAL_Delay(TEMPO * duration[idx_music]);
-        HAL_TIM_OC_Stop(&htim2, TIM_CHANNEL_1);
+        if (notes[idx_music] > -1)
+        {
+          TIM2->ARR = 1000000 / note_table[notes[idx_music]];
+          TIM2->CNT = 0;
+          HAL_TIM_OC_Start(&htim2, TIM_CHANNEL_1);
+          HAL_Delay(TEMPO * duration[idx_music]);
+          HAL_TIM_OC_Stop(&htim2, TIM_CHANNEL_1);
+        }
+        else
+        {
+          hal_delay(TEMPO * duration[idx_music]);
+        }
         HAL_Delay(10);
       }
 
