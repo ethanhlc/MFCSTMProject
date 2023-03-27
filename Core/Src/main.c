@@ -34,8 +34,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define BPS 400
-#define TEMPO (1000 * 60 / BPS)
+//#define BPS 400
+//#define TEMPO (1000 * 60 / BPS)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -52,9 +52,12 @@ uint8_t notes[100];
 uint8_t duration[100];
 uint8_t idx_music;
 uint8_t music_length;
+uint16_t tempo = 120;
+uint16_t tempo_delay;
 
 uint8_t flag_note;
 uint8_t flag_dur;
+uint8_t flag_tempo;
 
 int note_table[14] = {262, 293, 329, 349, 392, 440, 494,
                       523, 587, 659, 698, 784, 880, 988};
@@ -108,6 +111,7 @@ int main(void)
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart3, &rx_buffer, 1);
+  tempo_delay = 500 * 60 / tempo;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -129,12 +133,12 @@ int main(void)
           TIM2->ARR = 1000000 / note_table[notes[idx_music]];
           TIM2->CNT = 0;
           HAL_TIM_OC_Start(&htim2, TIM_CHANNEL_1);
-          HAL_Delay(TEMPO * duration[idx_music]);
+          HAL_Delay(tempo_delay * duration[idx_music]);
           HAL_TIM_OC_Stop(&htim2, TIM_CHANNEL_1);
         }
         else
         {
-          hal_delay(TEMPO * duration[idx_music]);
+          HAL_Delay(tempo_delay * duration[idx_music]);
         }
         HAL_Delay(10);
       }
@@ -234,6 +238,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
       playMusic = 1;
       idx_music = 0;
     }
+    else if (rx_buffer == 0x54) // 'T' : tempo
+    {
+      flag_tempo = 1;
+    }
     else
     {
       if (flag_note == 1)
@@ -245,6 +253,23 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
       {
         duration[idx_music] = rx_buffer;
         idx_music++;
+      }
+      if (flag_tempo == 1)
+      {
+        tempo = rx_buffer;
+
+        if (tempo == 0)
+          tempo_delay = 500 * 60 / 60;
+        else if (tempo == 1)
+          tempo_delay = 500 * 60 / 80;
+        else if (tempo == 2)
+          tempo_delay = 500 * 60 / 100;
+        else if (tempo == 3)
+          tempo_delay = 500 * 60 / 120;
+        else if (tempo == 4)
+          tempo_delay = 500 * 60 / 200;
+
+        flag_tempo = 0;
       }
     }
   }
