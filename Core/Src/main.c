@@ -128,6 +128,12 @@ int main(void)
 
       for (idx_music = 0; idx_music < music_length; idx_music++)
       {
+        // stop on signal
+        if (playMusic == 0)
+        {
+          break;
+        }
+
         if (notes[idx_music] > -1)
         {
           TIM2->ARR = 1000000 / note_table[notes[idx_music]];
@@ -236,7 +242,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     else if (rx_buffer == 0x50) // 'P' : play
     {
       playMusic = 1;
-      idx_music = 0;
+    }
+    else if (rx_buffer == 0x53) // 'S' : stop
+    {
+      playMusic = 0;
     }
     else if (rx_buffer == 0x54) // 'T' : tempo
     {
