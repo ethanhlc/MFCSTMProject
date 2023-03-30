@@ -208,6 +208,9 @@ static void MX_NVIC_Init(void)
   /* EXTI15_10_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+  /* EXTI3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
   /* USART3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(USART3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(USART3_IRQn);
@@ -284,19 +287,21 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   }
   HAL_UART_Receive_IT(&huart3, &rx_buffer, 1);
 }
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  if (htim->Instance == TIM3) // eighth note
+  if (GPIO_Pin == GPIO_PIN_3)
   {
-    ;
+    if (playMusic)
+      playMusic = 0;
+    else if (!playMusic)
+      playMusic = 1;
   }
-  if (htim->Instance == TIM4) // quarter note
+  if (GPIO_Pin == GPIO_PIN_13)
   {
-    ;
-  }
-  if (htim->Instance == TIM5) // half note
-  {
-    ;
+    if (playMusic)
+      playMusic = 0;
+    else if (!playMusic)
+      playMusic = 1;
   }
 }
 /* USER CODE END 4 */
